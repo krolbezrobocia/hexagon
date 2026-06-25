@@ -1,0 +1,121 @@
+# ⬢ Hexagon Custom Language Engine
+
+![Minecraft Version](https://img.shields.io/badge/Minecraft-1.21.4-blue?style=for-the-badge&logo=minecraft)
+![Loader](https://img.shields.io/badge/Loader-Fabric-brightgreen?style=for-the-badge)
+![Language](https://img.shields.io/badge/Language-Hexagon_DSL-red?style=for-the-badge)
+
+**Hexagon** to autorski, lekki język skryptowy typu DSL (Domain-Specific Language), stworzony z myślą o platformie Minecraft (Fabric 1.21.4). Silnik pozwala na pełną manipulację interfejsem graficznym użytkownika (GUI), renderowanie zaawansowanych nakładek ekranowych (HUD) oraz obsługę powiadomień bez konieczności dotykania kodu źródłowego w Javie. 
+
+Wszystkie modyfikacje i moduły klienta mogą być pisane w czasie rzeczywistym w zwykłym pliku tekstowym z rozszerzeniem `.hx`.
+
+---
+
+## 🏗️ Architektura i Zasada Działania
+
+Silnik projektu podzielony jest na dwie niezależne warstwy:
+1. **Core (Java / Fabric Mod):** Odpowiada za parsowanie składni plików `.hx`, rejestrację zdarzeń (Events), system renderowania grafiki 2D za pomocą metod Minecraft `DrawContext` oraz nasłuchiwanie klawiszy (Keybinds).
+2. **Script (Hexagon `.hx`):** Warstwa logiczna pisana przez użytkownika. Definiuje zachowanie klienta przy użyciu struktury hierarchicznej ("pudełko w pudełku").
+
+---
+
+## 🛠️ Pełna Składnia Języka (Dokumentacja Techniczna)
+
+### 1. Struktura Główna (Kontenery)
+Każdy skrypt musi być zamknięty w głównym bloku moda i definiować środowisko uruchomieniowe:
+* `mod <Nazwa> { ... }` – Główny kontener skryptu.
+* `style <kolor>` lub `theme <kolor>` – Definiuje globalny motyw kolorystyczny interfejsu (dostępne domyślnie: `red`, `blue`).
+* `client { ... }` – Blok kodu wykonywany wyłącznie po stronie klienta gry (odpowiedzialny za renderowanie i UI).
+
+### 2. Moduł HUD (`hud <pozycja>`)
+Odpowiada za elementy stale wyświetlane na ekranie gry. 
+* **Dostępne pozycje:** `topLeft` (lewy górny róg), `topRight` (prawy górny róg).
+* **Właściwości tekstowe:** `text "Własny Napis"` (zawsze w cudzysłowie).
+* **Zmienne dynamiczne (wyciągane automatycznie z gry):**
+    * `player` – Zwraca aktualny nick gracza.
+    * `fps` – Zwraca aktualną liczbę klatek na sekundę.
+    * `ping` – Zwraca aktualne opóźnienie sieciowe.
+    * `coords` lub `position` – Wyświetla aktualną pozycję X, Y, Z w świecie.
+    * `server` – Wyświetla IP serwera lub status Singleplayer.
+* **Zaawansowane formatowanie:**
+    * `color "#HEX"` – Kolor czcionki.
+    * `background "#HEX"` – Kolor tła panelu (w formacie ARGB, np. `#aa000000` dla przezroczystej czerni).
+
+### 3. Moduł GUI (`open gui "<Tytuł>" on <klawisz>`)
+Tworzy interaktywne okno modalne wywoływane naciśnięciem klawisza.
+* **Obsługa klawiszy:** Wszystkie mapowania piszemy małymi literami (np. `on right shift`, `on x`, `on g`, `on c`).
+* **Elementy wewnętrzne:**
+    * `panel "#HEX"` – Kolor tła okna głównego.
+    * `accent "#HEX"` – Kolor obramowania oraz elementów aktywnych.
+    * `label "Tekst"` – Statyczna linijka tekstu/informacji w menu.
+    * `button "Nazwa" { <akcja> }` – Interaktywny przycisk. Domyślna akcja `{ close }` zamyka bieżące menu.
+
+### 4. Funkcje Pomocnicze
+* `print "Tekst"` – Wysyła wiadomość typu log bezpośrednio do konsoli deweloperskiej launchera podczas ładowania skryptu.
+* `notify "Tekst"` – Wyświetla automatyczne, powtarzalne powiadomienie na pasku Actionbar (nad paskiem zdrowia gracza).
+
+---
+
+## 📜 Pełny, Zbiorczy Przykład Kodu (`main.hx`)
+
+Poniższy kod reprezentuje **jeden, kompletny plik konfiguracyjny**, który łączy w sobie wszystkie funkcjonalności języka Hexagon. Zawiera on konfigurację moda `SigmaModzik` (Mountain DLC), zaawansowane statystyki ekranowe HUD, wieloliniowe GUI informacyjne pod klawiszem oraz automatyzację powiadomień deweloperskich.
+
+```hx
+mod SigmaModzik {
+  style blue
+
+  # Logowanie deweloperskie do konsoli podczas startu silnika
+  print "[Hexagon] Inicjalizacja glosnego skryptu Mountain DLC..."
+
+  client {
+    # System cyklicznych powiadomien na pasku akcji nad ekwipunkiem
+    notify "Mountain DLC: System zaladowany pomyslnie"
+
+    # Automatyczna rejestracja komendy testowej w grze
+    run command "test"
+
+    # ==========================================
+    # NAKŁADKA EKRANOWA (HUD) - LEWY GÓRNY RÓG
+    # ==========================================
+    hud topLeft {
+      text "Mountain DLC v1.4"
+      player
+      fps
+      ping
+      coords
+      server
+      color "#3b82f6"
+      background "#aa000000"
+    }
+
+    # ==========================================
+    # INTERFEJS GRAFICZNY (GUI) - RIGHT SHIFT
+    # ==========================================
+    open gui "Mountain DLC Control Panel" on right shift {
+      panel "#060b12"
+      accent "#3b82f6"
+
+      label "=== STATUS SYSTEMU ==="
+      label "Najlepszy cheat / Mountain DLC"
+      label "Wersja: Core 1.4"
+      label "Status Licencji: Aktywna"
+      label "Uzytkownik: Autoryzowany"
+      label "======================"
+      
+      button "Zamknij Panel" { close }
+    }
+
+    # ==========================================
+    # DODATKOWE MENU INFORMACYJNE - KLAWISZ G
+    # ==========================================
+    open gui "Hexagon Info Menu" on g {
+      panel "#111111"
+      accent "#ffffff"
+
+      label "Skrypt testowy Hexagon DSL"
+      label "Wszystkie przyklady scalone w jeden plik"
+      
+      button "Zamknij" { close }
+    }
+
+  }
+}
